@@ -1,6 +1,8 @@
-import { Action, buildDispatcher, Reduceable, Reducer } from "affx";
-import { ajax, debounce, delay } from "affx/lib/affects";
+import { Action, Update } from "affx";
+import { ajax, debounce, delay } from "affx-affects";
 import * as React from "react";
+import { withAffx, WithAffxProps } from "react-affx";
+
 import "./App.css";
 
 interface User {
@@ -16,6 +18,8 @@ interface AppState {
   error?: Error;
   users: User[];
 }
+
+const initialState: AppState = { counter: 0, users: [] };
 
 // Actions
 interface UsersFetchedAction extends Action<"USERS_FETCH"> {
@@ -41,20 +45,53 @@ type AppActions =
   | UsersFetchedAction
   | ChangeInputAction;
 
+// Action Creators
+const allActionCreators = {
+  increment(): Action<"INCREMENT"> {
+    return { type: "INCREMENT" };
+  },
+  decrement(): Action<"DECREMENT"> {
+    return { type: "DECREMENT" };
+  },
+  fetchUsers({
+    data,
+    error,
+  }: {
+    data?: AppState["users"];
+    error?: Error;
+  }): ErrorAction | UsersFetchedAction | void {
+    if (error) {
+      return { error, type: "ERROR" };
+    }
+
+    if (data) {
+      return { type: "USERS_FETCH", users: data };
+    }
+  },
+};
+
 // Command Builders
-const commandBuilders = {
-  addDebounce: debounce(500, Symbol("my-debounce")),
-  addDelay: delay(1000),
+const allCommandBuilders = {
+  debounce: debounce(500, Symbol("my-debounce")),
+  delay: delay(1000),
   fetchUsers: ajax<AppState["users"]>(
     "https://jsonplaceholder.typicode.com/users",
     "json",
+    { timeout: 1000 }, // Will break after one second
   ),
 };
 
-// Reducer
-const reducer = (
-  commands: typeof commandBuilders,
-): Reducer<AppState, AppActions> => action => state => {
+// Update
+// Our update function is totally pure, and therefore easier to test
+interface UpdateInjections {
+  actionCreators: typeof allActionCreators;
+  commandBuilders: typeof allCommandBuilders;
+}
+
+const update = ({
+  actionCreators,
+  commandBuilders,
+}: UpdateInjections): Update<AppState, AppActions> => action => state => {
   switch (action.type) {
     case "INCREMENT":
       return { state: { ...state, counter: state.counter + 1 } };
@@ -64,36 +101,19 @@ const reducer = (
 
     case "DELAYED_INCREMENT":
       return {
-        commands: [
-          commands.addDelay((): Action<"INCREMENT"> => ({ type: "INCREMENT" })),
-        ],
+        commands: [commandBuilders.delay(actionCreators.increment)],
         state,
       };
 
     case "DELAYED_DECREMENT":
       return {
-        commands: [
-          commands.addDelay((): Action<"DECREMENT"> => ({ type: "DECREMENT" })),
-        ],
+        commands: [commandBuilders.delay(actionCreators.decrement)],
         state,
       };
 
     case "FETCH_USERS": {
       return {
-        commands: [
-          commands.fetchUsers(({ data, error }):
-            | ErrorAction
-            | UsersFetchedAction
-            | void => {
-            if (error) {
-              return { error, type: "ERROR" };
-            }
-
-            if (data) {
-              return { type: "USERS_FETCH", users: data };
-            }
-          }),
-        ],
+        commands: [commandBuilders.fetchUsers(actionCreators.fetchUsers)],
         state: { ...state, counter: state.counter + 1 },
       };
     }
@@ -106,11 +126,7 @@ const reducer = (
 
     case "CHANGE_INPUT": {
       return {
-        commands: [
-          commands.addDebounce((): Action<"INCREMENT"> => ({
-            type: "INCREMENT",
-          })),
-        ],
+        commands: [commandBuilders.debounce(actionCreators.increment)],
         state,
       };
     }
@@ -126,70 +142,55 @@ const reducer = (
 };
 
 // Component
-export default class App extends React.Component<{}, AppState>
-  implements Reduceable<AppActions> {
-  public state: AppState = { counter: 0, users: [] };
+const PartialApp: React.StatelessComponent<
+  object & WithAffxProps<AppState, AppActions>
+> = ({ dispatch, state }) => (
+  <div className="App">
+    {state.error && <div>Oh... {state.error.message}</div>}
+    <button type="button" onClick={dispatch.always({ type: "NOOP" })}>
+      NoOp
+    </button>
+    <button type="button" onClick={dispatch.always({ type: "INCREMENT" })}>
+      +
+    </button>
+    <button type="button" onClick={dispatch.always({ type: "DECREMENT" })}>
+      -
+    </button>
+    <button
+      type="button"
+      onClick={dispatch.always({ type: "DELAYED_DECREMENT" })}
+    >
+      --
+    </button>
+    <button
+      type="button"
+      onClick={dispatch.always({ type: "DELAYED_INCREMENT" })}
+    >
+      ++
+    </button>
+    <button type="button" onClick={dispatch.always({ type: "FETCH_USERS" })}>
+      Fetch
+    </button>
+    <a
+      href="https://google.com"
+      onClick={dispatch.always({ type: "INCREMENT" }, { preventDefault: true })}
+    >
+      Google
+    </a>
+    <input
+      type="text"
+      onChange={({ currentTarget: { value } }) =>
+        dispatch({ type: "CHANGE_INPUT", value })
+      }
+    />
+    <div>{JSON.stringify(state, null, 2)}</div>
+  </div>
+);
 
-  public dispatch = buildDispatcher(
-    () => this.state,
-    this.setState.bind(this),
-    reducer(commandBuilders),
-  );
-
-  public render() {
-    return (
-      <div className="App">
-        {this.state.error && <div>Oh... {this.state.error.message}</div>}
-        <button type="button" onClick={this.dispatch.always({ type: "NOOP" })}>
-          NoOp
-        </button>
-        <button
-          type="button"
-          onClick={this.dispatch.always({ type: "INCREMENT" })}
-        >
-          +
-        </button>
-        <button
-          type="button"
-          onClick={this.dispatch.always({ type: "DECREMENT" })}
-        >
-          -
-        </button>
-        <button
-          type="button"
-          onClick={this.dispatch.always({ type: "DELAYED_DECREMENT" })}
-        >
-          --
-        </button>
-        <button
-          type="button"
-          onClick={this.dispatch.always({ type: "DELAYED_INCREMENT" })}
-        >
-          ++
-        </button>
-        <button
-          type="button"
-          onClick={this.dispatch.always({ type: "FETCH_USERS" })}
-        >
-          Fetch
-        </button>
-        <a
-          href="https://google.com"
-          onClick={this.dispatch.always(
-            { type: "INCREMENT" },
-            { preventDefault: true },
-          )}
-        >
-          Google
-        </a>
-        <input
-          type="text"
-          onChange={({ currentTarget: { value } }) =>
-            this.dispatch({ type: "CHANGE_INPUT", value })
-          }
-        />
-        <div>{JSON.stringify(this.state, null, 2)}</div>
-      </div>
-    );
-  }
-}
+export const App = withAffx(
+  initialState,
+  update({
+    actionCreators: allActionCreators,
+    commandBuilders: allCommandBuilders,
+  }),
+)(PartialApp);
