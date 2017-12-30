@@ -144,9 +144,9 @@ const update = ({
 // Component
 const PartialApp: React.StatelessComponent<
   object & WithAffxProps<AppState, AppActions>
-> = ({ dispatch, state }) => (
+> = ({ counter, dispatch, error, users }) => (
   <div className="App">
-    {state.error && <div>Oh... {state.error.message}</div>}
+    {error && <div>Oh... {error.message}</div>}
     <button type="button" onClick={dispatch.always({ type: "NOOP" })}>
       NoOp
     </button>
@@ -183,7 +183,8 @@ const PartialApp: React.StatelessComponent<
         dispatch({ type: "CHANGE_INPUT", value })
       }
     />
-    <div>{JSON.stringify(state, null, 2)}</div>
+    <div>{counter}</div>
+    <div>{JSON.stringify(users, null, 2)}</div>
   </div>
 );
 
