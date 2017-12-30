@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "affx": "^0.5.0",
-    "affx-affects": "^0.2.0",
+    "affx": "^0.5.1",
+    "affx-affects": "^0.3.0",
     "react": "^16.1.1",
-    "react-affx": "^0.3.1",
+    "react-affx": "^0.3.2",
     "react-dom": "^16.1.1",
     "react-scripts-ts": "2.8.0"
   },

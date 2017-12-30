@@ -1,5 +1,5 @@
 import { Action, Update } from "affx";
-import { ajax, debounce, delay, retry } from "affx-affects";
+import { debounce, delay, getJSON, http, retry } from "affx-affects";
 import * as React from "react";
 import { withAffx, WithAffxProps } from "react-affx";
 
@@ -74,10 +74,11 @@ const allCommandBuilders = {
   fetchUsers: retry(
     Symbol("my-retry"),
     5,
-    ajax<AppState["users"]>(
-      "https://jsonplaceholder.typicode.com/users",
-      "json",
-      { timeout: 35 }, // Will break after 35 ms
+    getJSON<AppState["users"]>(
+      http(
+        "https://jsonplaceholder.typicode.com/users",
+        { timeout: 35 }, // Will break after 35 ms
+      ),
     ),
   ),
 };
