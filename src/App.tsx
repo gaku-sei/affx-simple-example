@@ -67,8 +67,8 @@ const allActionCreators = {
   },
 };
 
-// Command Builders
-const allCommandBuilders = {
+// Command Creators
+const everyCommandCreators = {
   debounce: debounce(Symbol("my-debounce"), 500),
   delay: delay(1000),
   fetchUsers: retry(
@@ -87,12 +87,12 @@ const allCommandBuilders = {
 // Our update function is totally pure, and therefore easier to test
 interface UpdateInjections {
   actionCreators: typeof allActionCreators;
-  commandBuilders: typeof allCommandBuilders;
+  commandCreators: typeof everyCommandCreators;
 }
 
 const update = ({
   actionCreators,
-  commandBuilders,
+  commandCreators,
 }: UpdateInjections): Update<AppState, AppActions> => action => state => {
   switch (action.type) {
     case "INCREMENT":
@@ -103,19 +103,19 @@ const update = ({
 
     case "DELAYED_INCREMENT":
       return {
-        commands: [commandBuilders.delay(actionCreators.increment)],
+        commands: [commandCreators.delay(actionCreators.increment)],
         state,
       };
 
     case "DELAYED_DECREMENT":
       return {
-        commands: [commandBuilders.delay(actionCreators.decrement)],
+        commands: [commandCreators.delay(actionCreators.decrement)],
         state,
       };
 
     case "FETCH_USERS": {
       return {
-        commands: [commandBuilders.fetchUsers(actionCreators.fetchUsers)],
+        commands: [commandCreators.fetchUsers(actionCreators.fetchUsers)],
         state: { ...state, counter: state.counter + 1 },
       };
     }
@@ -128,7 +128,7 @@ const update = ({
 
     case "CHANGE_INPUT": {
       return {
-        commands: [commandBuilders.debounce(actionCreators.increment)],
+        commands: [commandCreators.debounce(actionCreators.increment)],
         state,
       };
     }
@@ -206,6 +206,6 @@ export const App = withAffx(
   initialState,
   update({
     actionCreators: allActionCreators,
-    commandBuilders: allCommandBuilders,
+    commandCreators: everyCommandCreators,
   }),
 )(PartialApp);
