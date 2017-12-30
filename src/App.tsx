@@ -1,5 +1,5 @@
 import { Action, Update } from "affx";
-import { ajax, debounce, delay } from "affx-affects";
+import { ajax, debounce, delay, retry } from "affx-affects";
 import * as React from "react";
 import { withAffx, WithAffxProps } from "react-affx";
 
@@ -53,13 +53,10 @@ const allActionCreators = {
   decrement(): Action<"DECREMENT"> {
     return { type: "DECREMENT" };
   },
-  fetchUsers({
-    data,
-    error,
-  }: {
-    data?: AppState["users"];
-    error?: Error;
-  }): ErrorAction | UsersFetchedAction | void {
+  fetchUsers(
+    error: null | Error,
+    data?: AppState["users"],
+  ): ErrorAction | UsersFetchedAction | void {
     if (error) {
       return { error, type: "ERROR" };
     }
@@ -72,12 +69,16 @@ const allActionCreators = {
 
 // Command Builders
 const allCommandBuilders = {
-  debounce: debounce(500, Symbol("my-debounce")),
+  debounce: debounce(Symbol("my-debounce"), 500),
   delay: delay(1000),
-  fetchUsers: ajax<AppState["users"]>(
-    "https://jsonplaceholder.typicode.com/users",
-    "json",
-    { timeout: 1000 }, // Will break after one second
+  fetchUsers: retry(
+    Symbol("my-retry"),
+    5,
+    ajax<AppState["users"]>(
+      "https://jsonplaceholder.typicode.com/users",
+      "json",
+      { timeout: 35 }, // Will break after 35 ms
+    ),
   ),
 };
 
@@ -142,51 +143,63 @@ const update = ({
 };
 
 // Component
-const PartialApp: React.StatelessComponent<
+class PartialApp extends React.PureComponent<
   object & WithAffxProps<AppState, AppActions>
-> = ({ counter, dispatch, error, users }) => (
-  <div className="App">
-    {error && <div>Oh... {error.message}</div>}
-    <button type="button" onClick={dispatch.always({ type: "NOOP" })}>
-      NoOp
-    </button>
-    <button type="button" onClick={dispatch.always({ type: "INCREMENT" })}>
-      +
-    </button>
-    <button type="button" onClick={dispatch.always({ type: "DECREMENT" })}>
-      -
-    </button>
-    <button
-      type="button"
-      onClick={dispatch.always({ type: "DELAYED_DECREMENT" })}
-    >
-      --
-    </button>
-    <button
-      type="button"
-      onClick={dispatch.always({ type: "DELAYED_INCREMENT" })}
-    >
-      ++
-    </button>
-    <button type="button" onClick={dispatch.always({ type: "FETCH_USERS" })}>
-      Fetch
-    </button>
-    <a
-      href="https://google.com"
-      onClick={dispatch.always({ type: "INCREMENT" }, { preventDefault: true })}
-    >
-      Google
-    </a>
-    <input
-      type="text"
-      onChange={({ currentTarget: { value } }) =>
-        dispatch({ type: "CHANGE_INPUT", value })
-      }
-    />
-    <div>{counter}</div>
-    <div>{JSON.stringify(users, null, 2)}</div>
-  </div>
-);
+> {
+  public render() {
+    const { counter, dispatch, error, users } = this.props;
+
+    return (
+      <div className="App">
+        {error && <div>Oh... {error.message}</div>}
+        <button type="button" onClick={dispatch.always({ type: "NOOP" })}>
+          NoOp
+        </button>
+        <button type="button" onClick={dispatch.always({ type: "INCREMENT" })}>
+          +
+        </button>
+        <button type="button" onClick={dispatch.always({ type: "DECREMENT" })}>
+          -
+        </button>
+        <button
+          type="button"
+          onClick={dispatch.always({ type: "DELAYED_DECREMENT" })}
+        >
+          --
+        </button>
+        <button
+          type="button"
+          onClick={dispatch.always({ type: "DELAYED_INCREMENT" })}
+        >
+          ++
+        </button>
+        <button
+          type="button"
+          onClick={dispatch.always({ type: "FETCH_USERS" })}
+        >
+          Fetch
+        </button>
+        <a
+          href="https://google.com"
+          onClick={dispatch.always(
+            { type: "INCREMENT" },
+            { preventDefault: true },
+          )}
+        >
+          Google
+        </a>
+        <input
+          type="text"
+          onChange={({ currentTarget: { value } }) =>
+            dispatch({ type: "CHANGE_INPUT", value })
+          }
+        />
+        <div>{counter}</div>
+        <div>{JSON.stringify(users, null, 2)}</div>
+      </div>
+    );
+  }
+}
 
 export const App = withAffx(
   initialState,
