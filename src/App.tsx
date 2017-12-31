@@ -3,8 +3,6 @@ import { debounce, delay, getJSON, http, retry } from "affx-affects";
 import * as React from "react";
 import { withAffx, WithAffxProps } from "react-affx";
 
-import "./App.css";
-
 interface User {
   id: number;
   name: string;
@@ -46,7 +44,7 @@ type AppActions =
   | ChangeInputAction;
 
 // Action Creators
-const allActionCreators = {
+const everyActionCreators = {
   increment(): Action<"INCREMENT"> {
     return { type: "INCREMENT" };
   },
@@ -86,7 +84,7 @@ const everyCommandCreators = {
 // Update
 // Our update function is totally pure, and therefore easier to test
 interface UpdateInjections {
-  actionCreators: typeof allActionCreators;
+  actionCreators: typeof everyActionCreators;
   commandCreators: typeof everyCommandCreators;
 }
 
@@ -205,7 +203,7 @@ class PartialApp extends React.PureComponent<
 export const App = withAffx(
   initialState,
   update({
-    actionCreators: allActionCreators,
+    actionCreators: everyActionCreators,
     commandCreators: everyCommandCreators,
   }),
 )(PartialApp);
