@@ -11,13 +11,13 @@ interface User {
 }
 
 // State
-interface AppState {
+export interface AppState {
   counter: number;
   error?: Error;
   users: User[];
 }
 
-const initialState: AppState = { counter: 0, users: [] };
+export const appInitialState = (): AppState => ({ counter: 0, users: [] });
 
 // Actions
 interface UsersFetchedAction extends Action<"USERS_FETCH"> {
@@ -32,7 +32,7 @@ interface ErrorAction extends Action<"ERROR"> {
   error: Error;
 }
 
-type AppActions =
+export type AppActions =
   | Action<"INCREMENT">
   | Action<"NOOP">
   | Action<"DECREMENT">
@@ -88,7 +88,7 @@ interface UpdateInjections {
   commandCreators: typeof everyCommandCreators;
 }
 
-const update = ({
+const pureAppUpdate = ({
   actionCreators,
   commandCreators,
 }: UpdateInjections): Update<AppState, AppActions> => action => state => {
@@ -141,8 +141,13 @@ const update = ({
   }
 };
 
+export const appUpdate = pureAppUpdate({
+  actionCreators: everyActionCreators,
+  commandCreators: everyCommandCreators,
+});
+
 // Component
-class PartialApp extends React.PureComponent<
+export class PartialApp extends React.PureComponent<
   object & WithAffxProps<AppState, AppActions>
 > {
   public render() {
@@ -200,10 +205,4 @@ class PartialApp extends React.PureComponent<
   }
 }
 
-export const App = withAffx(
-  initialState,
-  update({
-    actionCreators: everyActionCreators,
-    commandCreators: everyCommandCreators,
-  }),
-)(PartialApp);
+export const App = withAffx(appInitialState(), appUpdate)(PartialApp);

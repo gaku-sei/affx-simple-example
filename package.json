@@ -7,10 +7,10 @@
     "build": "webpack"
   },
   "dependencies": {
-    "affx": "^0.5.1",
+    "affx": "^0.6.0",
     "affx-affects": "^0.3.0",
     "react": "^16.1.1",
-    "react-affx": "^0.3.2",
+    "react-affx": "^0.4.0",
     "react-dom": "^16.1.1"
   },
   "devDependencies": {
